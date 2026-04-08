@@ -1,0 +1,34 @@
+# ===== BACKEND =====
+bench-blend-backend/target/
+bench-blend-backend/.mvn/
+bench-blend-backend/*.log
+bench-blend-backend/logs/
+
+# ===== FRONTEND =====
+bench-blend-frontend/.next/
+bench-blend-frontend/node_modules/
+bench-blend-frontend/.env.local
+bench-blend-frontend/out/
+bench-blend-frontend/build/
+
+# ===== ENVIRONMENT =====
+.env
+.env.local
+.env.production
+*.env
+
+# ===== IDE =====
+.idea/
+*.iml
+.vscode/
+*.suo
+*.user
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== LOGS =====
+*.log
+logs/
