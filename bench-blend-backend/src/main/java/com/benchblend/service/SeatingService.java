@@ -10,7 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -39,27 +41,29 @@ public class SeatingService {
         if (schedules.isEmpty()) throw new RuntimeException("No exam schedule found for this date");
         if (blocks.isEmpty()) throw new RuntimeException("No room blocks found for this date");
 
-        // Clear previous arrangement for this date
         seatingArrangementRepository.deleteBySessionIdAndExamDate(sessionId, examDate);
         classBlockHistoryRepository.deleteBySessionIdAndExamDate(sessionId, examDate);
 
-        // Generate new arrangement
         List<SeatingArrangement> arrangements = seatingAlgorithm.generate(
                 schedules, blocks, session, examDate, mode);
 
-        // Save arrangements
         List<SeatingArrangement> saved = seatingArrangementRepository.saveAll(arrangements);
 
-        // Save block history for rotation rule
         saveBlockHistory(saved, session);
 
-        return saved.stream().map(this::mapToResponse).toList();
+        Map<String, Integer> roomSideCounter = new HashMap<>();
+        return saved.stream()
+                .map(a -> mapToResponse(a, roomSideCounter))
+                .toList();
     }
 
     public List<SeatingArrangementResponse> getSeating(Long sessionId, LocalDate examDate) {
+        Map<String, Integer> roomSideCounter = new HashMap<>();
         return seatingArrangementRepository
                 .findBySessionIdAndExamDateOrderByBlockNo(sessionId, examDate)
-                .stream().map(this::mapToResponse).toList();
+                .stream()
+                .map(a -> mapToResponse(a, roomSideCounter))
+                .toList();
     }
 
     private void saveBlockHistory(List<SeatingArrangement> arrangements, ExamSession session) {
@@ -77,8 +81,8 @@ public class SeatingService {
         classBlockHistoryRepository.saveAll(histories);
     }
 
-    private SeatingArrangementResponse mapToResponse(SeatingArrangement a) {
-        String benchRange = buildBenchRange(a);
+    private SeatingArrangementResponse mapToResponse(SeatingArrangement a, Map<String, Integer> roomSideCounter) {
+        String benchRange = buildBenchRange(a, roomSideCounter);
         return SeatingArrangementResponse.builder()
                 .id(a.getId())
                 .examDate(a.getExamDate())
@@ -97,11 +101,17 @@ public class SeatingService {
                 .build();
     }
 
-    private String buildBenchRange(SeatingArrangement a) {
+    private String buildBenchRange(SeatingArrangement a, Map<String, Integer> roomSideCounter) {
         String roomCode = a.getRoomNo().replace("-", "");
         String side = a.getSide() != null ? a.getSide() : "L";
-        int from = 1;
-        int to = a.getBenchesUsed();
-        return String.format("%s%s%02d to %s%s%02d", roomCode, side, from, roomCode, side, to);
+        String key = roomCode + "-" + side;
+
+        int startBench = roomSideCounter.getOrDefault(key, 0) + 1;
+        int endBench = startBench + a.getBenchesUsed() - 1;
+
+        roomSideCounter.put(key, endBench);
+
+        return String.format("%s%s%02d to %s%s%02d",
+                roomCode, side, startBench, roomCode, side, endBench);
     }
 }
