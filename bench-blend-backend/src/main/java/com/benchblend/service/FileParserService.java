@@ -46,7 +46,8 @@ public class FileParserService {
                                                       ExamSession session,
                                                       LocalDate examDate) throws Exception {
         List<ExamSchedule> schedules = new ArrayList<>();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
+        BufferedReader reader = new BufferedReader(
+    new InputStreamReader(file.getInputStream(), java.nio.charset.StandardCharsets.UTF_8));
         String line;
         boolean firstLine = true;
 
