@@ -6,4 +6,4 @@ VALUES (
     'admin@benchblend.com',
     NOW(),
     NOW()
-);
+) ON CONFLICT (username) DO NOTHING;
